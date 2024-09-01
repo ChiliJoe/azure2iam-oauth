@@ -1,0 +1,5 @@
+fdk>=0.1.75
+pyjwt
+cryptography
+oci
+requests

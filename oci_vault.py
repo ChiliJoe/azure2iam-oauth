@@ -3,11 +3,38 @@ import base64
 import logging
 
 class OCIVault:
+    """
+    A class representing an OCI Vault.
+    Args:
+        region (str, optional): The OCI region. Defaults to 'us-phoenix-1'.
+        use_instance_principal (bool, optional): Whether to use instance principal for authentication. Defaults to True.
+    Methods:
+        getSecret(ocid: str) -> str:
+            Retrieves the secret content from the OCI Vault.
+            Args:
+                ocid (str): The OCID of the secret.
+            Returns:
+                str: The decrypted secret content.
+            Raises:
+                Exception: If there is an error retrieving the secret.
+    """
     def __init__(self, region: str = 'us-phoenix-1', use_instance_principal: bool = True):
         self.region = region
         self.use_instance_principal = use_instance_principal
 
     def getSecret(self, ocid):
+        """
+        Retrieves a secret from the Oracle Cloud Infrastructure (OCI) Vault.
+
+        Args:
+            ocid (str): The OCID (Oracle Cloud Identifier) of the secret to retrieve.
+
+        Returns:
+            str: The decrypted content of the secret.
+
+        Raises:
+            Exception: If there is an error retrieving the secret.
+        """
         if self.use_instance_principal:
             signer = oci.auth.signers.get_resource_principals_signer()
         try:

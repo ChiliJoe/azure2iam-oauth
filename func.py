@@ -13,6 +13,15 @@ import datetime
 from datetime import timedelta
 
 def loadConfigDict(config: dict) -> dict:
+    """
+    Loads the configuration dictionary for OAuth applications.
+    Args:
+        config (dict): The configuration dictionary containing the necessary parameters.
+    Returns:
+        dict: The dictionary containing the OAuth application configurations.
+    Raises:
+        Exception: If there is an error in getting the configuration or secrets.
+    """
     oauth_apps = {}
     try:
         logging.getLogger().info('initContext: Initializing context')
@@ -38,6 +47,18 @@ def loadConfigDict(config: dict) -> dict:
 
 
 def getBackEndAuthToken(token_endpoint: str, client_id: str, client_secret: str, scope: str):
+    """
+    Retrieves a backend authentication token from the specified token endpoint.
+    Args:
+        token_endpoint (str): The URL of the token endpoint.
+        client_id (str): The client ID used for authentication.
+        client_secret (str): The client secret used for authentication.
+        scope (str): The scope of the token.
+    Returns:
+        dict: The backend authentication token.
+    Raises:
+        Exception: If there is an error while retrieving the token.
+    """
     payload = {'grant_type': 'client_credentials',
                'scope': scope}
     headers = {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'}
@@ -56,6 +77,34 @@ def getBackEndAuthToken(token_endpoint: str, client_id: str, client_secret: str,
 
 
 def getAuthContext(token: str, client_apps: dict) -> dict:
+    """
+    Retrieves the authentication context based on the provided token and client applications.
+    Args:
+        token (str): The authentication token.
+        client_apps (dict): A dictionary containing the client application details.
+    Returns:
+        dict: The authentication context containing the active status, expiration time, principal, scope, and backend token.
+    Raises:
+        None
+    Example:
+        token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        client_apps = {
+            'ad': {
+                'jwks_url': 'https://example.com/jwks',
+                'issuer': 'https://example.com',
+                'audience': 'https://example.com/api'
+            },
+            'idcs': {
+                'token_endpoint': 'https://example.com/token',
+                'client_id': '1234567890',
+                'client_secret': 'abcdefg',
+                'scope': 'https://01234567891234560123456789123456.integration.ocp.oraclecloud.com:443urn:opc:resource:consumer::all'
+            }
+        }
+        auth_context = getAuthContext(token, client_apps)
+    """
+    # Function implementation goes here
+    pass
     auth_context = {}
     azure_token = token[len('Bearer '):]
 
@@ -88,6 +137,17 @@ def getAuthContext(token: str, client_apps: dict) -> dict:
 
 
 def handler(ctx, data: io.BytesIO = None):
+    """
+    Handler function for processing OAuth authentication.
+    Parameters:
+    - ctx: The OCI Functions context object.
+    - data: Optional parameter for input data as a BytesIO object.
+    Returns:
+    - A response object with the authentication result.
+    Raises:
+    - ValueError: If there is an error parsing the JSON payload.
+    - Exception: If there is any other exception during the authentication process.
+    """
     oauth_apps = loadConfigDict(dict(ctx.Config()))
     logging.getLogger().info(data.getvalue())
     

@@ -126,7 +126,7 @@ def getAuthContext(token: str, client_apps: dict) -> dict:
                                              client_secret=client_apps['idcs']['client_secret'],
                                              scope=client_apps['idcs']['scope'])
 
-        auth_context['context'] = {'backend_token': f"Bearer {backend_token['access_token']}"}
+        auth_context['context'] = {'back_end_token': f"Bearer {backend_token['access_token']}"}
 
     else:
         # Azure token is not valid

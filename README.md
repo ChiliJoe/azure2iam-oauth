@@ -6,6 +6,8 @@ Code presented in the article has been refactored. The Azure token validation ha
 
 ## Configuration variables
 ### General
+* LOG_LEVEL (optional)
+  * Log level for logging service. Defaults to WARNING. Valid values are DEBUG, INFO, WARNING, ERROR and CRITICAL.
 * VAULT_REGION (optional)
   * Region of OCI vault where secret was created. Defaults to us-phoenix-1
 ### IAM

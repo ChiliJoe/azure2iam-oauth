@@ -12,7 +12,9 @@ from oci_vault import OCIVault
 import datetime
 from datetime import timedelta
 
-def loadConfigDict(config: dict) -> dict:
+import traceback
+
+def loadConfig(config: dict) -> dict:
     """
     Loads the configuration dictionary for OAuth applications.
     Args:
@@ -22,9 +24,26 @@ def loadConfigDict(config: dict) -> dict:
     Raises:
         Exception: If there is an error in getting the configuration or secrets.
     """
+    if 'LOG_LEVEL' in config:
+        log_level = config['LOG_LEVEL']
+        if log_level == 'DEBUG':
+            logging.getLogger().setLevel(logging.DEBUG)
+        elif log_level == 'INFO':
+            logging.getLogger().setLevel(logging.INFO)
+        elif log_level == 'WARNING':
+            logging.getLogger().setLevel(logging.WARNING)
+        elif log_level == 'ERROR':
+            logging.getLogger().setLevel(logging.ERROR)
+        elif log_level == 'CRITICAL':
+            logging.getLogger().setLevel(logging.CRITICAL)
+    else:
+        # set default log level to WARNING
+        logging.getLogger().setLevel(logging.WARNING)
+
     oauth_apps = {}
+
     try:
-        logging.getLogger().info('initContext: Initializing context')
+        logging.getLogger().info('loadConfig: Loading config values')
 
         if 'VAULT_REGION' in config:
             ociVault = OCIVault(region=config['VAULT_REGION'])
@@ -41,8 +60,8 @@ def loadConfigDict(config: dict) -> dict:
         return oauth_apps
     
     except Exception as ex:
-        logging.getLogger().error(f"initContext: Failed to get config or secrets {ex}")
-        print('ERROR [initContext]: Failed to get the configs', ex, flush=True)
+        logging.getLogger().error(f"loadConfig: Failed to get config or secrets: {ex}")
+        print('ERROR [loadConfig]: Failed to get the configs', ex, flush=True)
         raise
 
 
@@ -59,6 +78,8 @@ def getBackEndAuthToken(token_endpoint: str, client_id: str, client_secret: str,
     Raises:
         Exception: If there is an error while retrieving the token.
     """
+    logging.getLogger().info('getBackEndAuthToken: Retrieving IDCS token')
+
     payload = {'grant_type': 'client_credentials',
                'scope': scope}
     headers = {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'}
@@ -69,8 +90,10 @@ def getBackEndAuthToken(token_endpoint: str, client_id: str, client_secret: str,
                                                  headers=headers,
                                                  auth=HTTPBasicAuth(client_id, client_secret)).text)
 
+        logging.getLogger().debug(f"backend_token: {backend_token}")
+
     except Exception as ex:
-        logging.getLogger().error(f"getBackEndAuthToken: Failed to get IDCS token {ex}")
+        logging.getLogger().error(f"getBackEndAuthToken: Failed to get IDCS token: {ex}")
         raise
 
     return backend_token
@@ -103,16 +126,20 @@ def getAuthContext(token: str, client_apps: dict) -> dict:
         }
         auth_context = getAuthContext(token, client_apps)
     """
-    # Function implementation goes here
-    pass
+    logging.getLogger().info('getAuthContext: Assessing authentication context')
+
     auth_context = {}
     azure_token = token[len('Bearer '):]
+
+    logging.getLogger().debug(f"getAuthContext: {azure_token=}")
 
     validator = AzureToken_Validator(jwks_url=client_apps['ad']['jwks_url'],
                                      issuer=client_apps['ad']['issuer'],
                                      audience=client_apps['ad']['audience'])
     
     if validator.validate_token(azure_token):
+        logging.getLogger().debug('getAuthContext: Azure token is valid')
+
         # expiry doesn't matter since this is only valid for this request
         expiresAt = (datetime.datetime.utcnow() + timedelta(seconds=60)).replace(tzinfo=datetime.timezone.utc).astimezone().replace(microsecond=0).isoformat()
         auth_context['active'] = True
@@ -130,6 +157,8 @@ def getAuthContext(token: str, client_apps: dict) -> dict:
 
     else:
         # Azure token is not valid
+        logging.getLogger().debug('getAuthContext: Azure token is invalid')
+
         auth_context['active'] = False
         auth_context['wwwAuthenticate'] = f'Bearer realm="https://login.microsoftonline.com", oauth_error="{validator.error_message}"'
     
@@ -148,11 +177,13 @@ def handler(ctx, data: io.BytesIO = None):
     - ValueError: If there is an error parsing the JSON payload.
     - Exception: If there is any other exception during the authentication process.
     """
-    oauth_apps = loadConfigDict(dict(ctx.Config()))
-    logging.getLogger().info(data.getvalue())
+    oauth_apps = loadConfig(dict(ctx.Config()))
+
+    input_value = data.getvalue()
+    logging.getLogger().debug(input_value)
     
     try:
-        gateway_auth = json.loads(data.getvalue())
+        gateway_auth = json.loads(input_value)
 
         auth_context = getAuthContext(token=gateway_auth['token'], client_apps=oauth_apps)
 
@@ -178,6 +209,6 @@ def handler(ctx, data: io.BytesIO = None):
 
         return response.Response(
             ctx, response_data=json.dumps(
-                {"message": "Error parsing json payload"}),
+                {"message": f"Error parsing json payload: {traceback.format_exc()}"}),
             headers={"Content-Type": "application/json"}
         )

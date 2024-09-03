@@ -22,7 +22,7 @@ class OCIVault:
         self.region = region
         self.use_instance_principal = use_instance_principal
 
-    def getSecret(self, ocid):
+    def getSecret(self, ocid: str):
         """
         Retrieves a secret from the Oracle Cloud Infrastructure (OCI) Vault.
 
